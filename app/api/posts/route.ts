@@ -1,44 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir, readFile } from "fs/promises";
-import { existsSync } from "fs";
-import path from "path";
 import { PublicKey } from "@solana/web3.js";
 import nacl from "tweetnacl";
-
-const POSTS_DIR = path.join(process.cwd(), "data", "posts");
-const POSTS_FILE = path.join(POSTS_DIR, "posts.json");
-
-// Ensure directory exists
-async function ensureDirectory() {
-  if (!existsSync(POSTS_DIR)) {
-    await mkdir(POSTS_DIR, { recursive: true });
-  }
-}
+import { getAllPosts, getPostById, createPost } from "@/lib/db";
 
 // GET - Fetch all posts or a specific post
 export async function GET(request: NextRequest) {
   try {
-    await ensureDirectory();
-
-    if (!existsSync(POSTS_FILE)) {
-      return NextResponse.json([]);
-    }
-
-    const fileContent = await readFile(POSTS_FILE, "utf-8");
-    const posts = JSON.parse(fileContent || "[]");
-
     const { searchParams } = new URL(request.url);
     const uuid = searchParams.get("uuid");
 
     if (uuid) {
-      const post = posts.find((p: any) => p.id === uuid);
+      const post = await getPostById(uuid);
       if (!post) {
         return NextResponse.json({ error: "Post not found" }, { status: 404 });
       }
-      return NextResponse.json(post);
+      // Transform to match frontend expectations (snake_case -> camelCase)
+      return NextResponse.json({
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        walletAddress: post.wallet_address,
+        signature: post.signature,
+        message: post.message,
+        paymentAmount: post.payment_amount,
+        paymentCurrency: post.payment_currency,
+        mediaFiles: post.media_files,
+        createdAt: post.created_at,
+      });
     }
 
-    return NextResponse.json(posts);
+    const posts = await getAllPosts();
+    // Transform all posts to match frontend expectations
+    return NextResponse.json(
+      posts.map((post) => ({
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        walletAddress: post.wallet_address,
+        signature: post.signature,
+        message: post.message,
+        paymentAmount: post.payment_amount,
+        paymentCurrency: post.payment_currency,
+        mediaFiles: post.media_files,
+        createdAt: post.created_at,
+      }))
+    );
   } catch (error) {
     console.error("Error reading posts:", error);
     return NextResponse.json(
@@ -51,8 +57,6 @@ export async function GET(request: NextRequest) {
 // POST - Create a new post
 export async function POST(request: NextRequest) {
   try {
-    await ensureDirectory();
-
     const postData = await request.json();
 
     // Verify signature
@@ -93,27 +97,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate UUID and add createdAt on the backend
-    const post = {
-      ...postData,
+    // Transform frontend data (camelCase) to database format (snake_case)
+    const dbPost = await createPost({
       id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
+      title: postData.title,
+      content: postData.content,
+      wallet_address: postData.walletAddress,
+      signature: postData.signature,
+      message: postData.message,
+      payment_amount: postData.paymentAmount,
+      payment_currency: postData.paymentCurrency,
+      media_files: postData.mediaFiles,
+      created_at: new Date().toISOString(),
+    });
 
-    // Read existing posts
-    let posts = [];
-    if (existsSync(POSTS_FILE)) {
-      const fileContent = await readFile(POSTS_FILE, "utf-8");
-      posts = JSON.parse(fileContent || "[]");
-    }
-
-    // Add new post
-    posts.push(post);
-
-    // Write back to file
-    await writeFile(POSTS_FILE, JSON.stringify(posts, null, 2), "utf-8");
-
-    return NextResponse.json({ success: true, id: post.id });
+    return NextResponse.json({ success: true, id: dbPost.id });
   } catch (error) {
     console.error("Error saving post:", error);
     return NextResponse.json({ error: "Failed to save post" }, { status: 500 });
