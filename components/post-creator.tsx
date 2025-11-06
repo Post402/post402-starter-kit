@@ -564,9 +564,34 @@ export function PostCreator() {
       <div className="relative z-10 p-6 w-full max-w-3xl mx-auto select-none">
         <div className="bg-black/70 backdrop-blur-sm border border-gray-600 p-6 animate-in fade-in zoom-in-95 duration-200 space-y-6">
           <div className="">
-            <h1 className="text-2xl font-bold text-white select-none">
-              Post402
-            </h1>
+            <div className="flex items-center justify-between mb-2">
+              <a
+                href="https://x.com/Post402"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <h1 className="text-2xl font-bold text-white select-none hover:text-gray-300 transition-colors cursor-pointer">
+                  Post402
+                </h1>
+              </a>
+              <a
+                href="https://x.com/Post402"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center w-10 h-10 bg-black/50 border border-gray-600 hover:bg-black/70 hover:border-gray-500 transition-colors"
+                aria-label="Visit our X profile"
+              >
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
+            </div>
             <p className="text-sm text-gray-400">
               Create and share premium content
             </p>
