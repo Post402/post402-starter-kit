@@ -17,7 +17,8 @@ The payment system uses the x402 protocol. Payments are made in USDC on Solana d
 ## Tech stack
 
 - Next.js 14
-- React 19
+- React 18
+- Supabase (PostgreSQL database)
 - Solana wallet adapter (Phantom, Solflare)
 - x402 payment protocol
 - Tailwind CSS
@@ -25,13 +26,29 @@ The payment system uses the x402 protocol. Payments are made in USDC on Solana d
 
 ## Setup
 
-Install dependencies:
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-Run the dev server:
+### 2. Set up Supabase
+
+1. Create a free account at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Go to **Settings** → **API** to get your credentials
+4. Create a `.env.local` file in the project root:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+5. Run the database migration:
+   - In your Supabase dashboard, go to **SQL Editor**
+   - Copy and run the SQL from `supabase-migration.sql`
+
+### 3. Run the dev server
 
 ```bash
 npm run dev
@@ -50,7 +67,7 @@ The app runs on `http://localhost:3000`.
 5. Your payout address is automatically detected
 6. Click "Publish" and sign the message with your wallet
 
-Posts are stored in `data/posts/posts.json`. Each post gets a UUID and includes your wallet signature for verification.
+Posts are stored in Supabase. Each post gets a UUID and includes your wallet signature for verification.
 
 ### Viewing posts
 
@@ -102,6 +119,8 @@ components/
   solana-provider.tsx   # Solana wallet context
 
 lib/
+  supabase.ts           # Supabase client configuration
+  db.ts                 # Database operations
   x402-config.ts        # Configuration
   x402-verification.ts  # Payment verification logic
   transaction-storage.ts # In-memory transaction cache
@@ -111,15 +130,32 @@ middleware.ts           # Payment gate for /post routes
 
 ## Notes
 
-- Posts are stored as JSON files, not in a database
+- Posts are stored in Supabase (PostgreSQL database)
+- Media files (images, videos) are stored as base64 data URLs in the database
 - Transaction storage is in-memory only (lost on restart)
 - Currently using Solana devnet
 - Cookies are httpOnly and secure in production
 - The payment UI shows a 402 error code (Payment Required)
 
+## Database Schema
+
+Posts are stored in a `posts` table with the following structure:
+- `id` - UUID (primary key)
+- `title` - Post title
+- `content` - Post content
+- `wallet_address` - Solana wallet address of the creator
+- `signature` - Base64-encoded signature
+- `message` - Original message that was signed
+- `payment_amount` - Payment amount in USDC
+- `payment_currency` - Currency (default: USDC)
+- `media_files` - JSONB array of media file metadata
+- `created_at` - Timestamp
+
 ## Development
 
-The project uses TypeScript and Tailwind CSS. The post creator has a dithering shader background that changes colors. Media files are stored as base64 data URLs in the JSON.
+The project uses TypeScript and Tailwind CSS. The post creator has a dithering shader background that changes colors. Media files are stored as base64 data URLs in the database.
+
+**Note:** For production, consider using a proper file storage service (like Supabase Storage, AWS S3, or Cloudinary) instead of storing base64-encoded images in the database.
 
 To build for production:
 
